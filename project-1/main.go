@@ -53,6 +53,7 @@ func get(w http.ResponseWriter, r *http.Request) {
 	}
 	onError(w, "Todo not found!", http.StatusNotFound)
 }
+
 func create(w http.ResponseWriter, r *http.Request) {
 	var data TodoCreation
 	err := json.NewDecoder(r.Body).Decode(&data)

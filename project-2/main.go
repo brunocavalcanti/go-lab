@@ -5,11 +5,10 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 
 	"github.com/gorilla/mux"
 	"github.com/jinzhu/gorm"
-	_ "github.com/jinzhu/gorm/dialects/mysql"
+	_ "github.com/jinzhu/gorm/dialects/sqlite"
 )
 
 type Todo struct {
@@ -27,11 +26,13 @@ var db *gorm.DB
 var todos = []Todo{}
 
 func main() {
-	db, err := gorm.Open("mysql", os.Getenv("MYSQL_URL"))
+	var err error
+	db, err = gorm.Open("sqlite3", "./todo.db")
+	db.AutoMigrate(&Todo{})
 	defer db.Close()
 
 	if err != nil {
-		panic("failed to connect database")
+		panic(err)
 	}
 
 	router := mux.NewRouter()
@@ -63,11 +64,17 @@ func create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if (TodoCreation{}) == todo {
-		onError(w, "Invalid todo!", http.StatusUnauthorized)
+		onError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	err = db.Create(&todo).Error
+	retInsert := db.Create(&todo)
+	if retInsert.Error != nil {
+		onError(w, "TESTE", http.StatusBadRequest)
+		return
+	}
+	onSucces(w, retInsert.Value, http.StatusCreated)
+	return
 
 }
 
@@ -93,8 +100,8 @@ func jsonMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-func createDataBase(schemas ...interface{}) {
-	db.AutoMigrate(schemas)
+func createDataBase() {
+	// db.AutoMigrate(&Todo{})
 	// for _, Item := range schemas {
 	// 	db.HasTable(&Item)
 	// 	db.CreateTable(&Item)
